@@ -1,15 +1,21 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List
 import spacy
 from huggingface_hub import snapshot_download
 import os
+
+# Prevent symlink issues on Windows
 os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
 
 app = FastAPI()
 
-# Download and load spaCy model
-model_path = snapshot_download("kalyanram3600/en_resume_ner_pipeline")
+# Download and load the spaCy model
+model_path = snapshot_download(
+    "kalyanram3600/en_resume_ner_pipeline",
+    local_dir="en_resume_model",
+    local_dir_use_symlinks=False
+)
 nlp = spacy.load(model_path)
 
 # Request schema
@@ -28,5 +34,4 @@ def home():
 @app.post("/predict", response_model=List[Entity])
 def extract_entities(data: ResumeText):
     doc = nlp(data.text)
-    results = [{"label": ent.label_, "text": ent.text} for ent in doc.ents]
-    return results
+    return [{"label": ent.label_, "text": ent.text} for ent in doc.ents]
